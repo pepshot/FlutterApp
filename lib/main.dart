@@ -4,36 +4,84 @@ void main() {
   runApp(const MyApp());
 }
 
+// Enum: возможные состояния задачи.
+enum TaskStatus { pending, completed }
+
+// Extension: добавляем подпись к состоянию.
+extension TaskStatusLabel on TaskStatus {
+  String get label => switch (this) {
+    TaskStatus.pending => 'В процессе',
+    TaskStatus.completed => 'Выполнено',
+  };
+}
+
+// Класс с полями и методом изменения состояния.
+class Task {
+  Task(this.title, {this.status = TaskStatus.pending});
+
+  final String title;
+  TaskStatus status;
+
+  void toggle() {
+    status = status == TaskStatus.pending
+        ? TaskStatus.completed
+        : TaskStatus.pending;
+  }
+}
+
+class TaskRepository {
+  // Синхронно возвращаем типизированный список задач (Generics).
+  List<Task> loadTasks() {
+    return <Task>[
+      Task('Изучить классы и enum'),
+      Task('Попрактиковаться с циклами и List'),
+      Task('Разобраться с extension'),
+    ];
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter App',
+      title: 'Учебные задачи',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter App'),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final TaskRepository _repository = TaskRepository();
+  late final List<Task> _tasks;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _tasks = _repository.loadTasks();
+  }
+
+  int _countCompleted(List<Task> tasks) {
+    int count = 0;
+    // Loop: перебираем задачи и подсчитываем выполненные.
+    for (final task in tasks) {
+      if (task.status == TaskStatus.completed) {
+        count++;
+      }
+    }
+    return count;
   }
 
   @override
@@ -41,24 +89,36 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text("Князькин Александр, ПИбд-31"),
+        title: const Text('Князькин Александр, ПИбд-31'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Выполнено: ${_countCompleted(_tasks)} из ${_tasks.length}',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _tasks.length,
+              // Анонимная функция строит строку списка.
+              itemBuilder: (context, index) {
+                final task = _tasks[index];
+                return CheckboxListTile(
+                  title: Text(task.title),
+                  subtitle: Text(task.status.label),
+                  value: task.status == TaskStatus.completed,
+                  onChanged: (_) {
+                    setState(() => task.toggle());
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
