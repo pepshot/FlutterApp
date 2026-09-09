@@ -15,7 +15,6 @@ extension TaskStatusLabel on TaskStatus {
   };
 }
 
-// Класс с полями и методом изменения состояния.
 class Task {
   Task(this.title, {this.status = TaskStatus.pending});
 
@@ -30,12 +29,11 @@ class Task {
 }
 
 class TaskRepository {
-  // Синхронно возвращаем типизированный список задач (Generics).
   List<Task> loadTasks() {
     return <Task>[
-      Task('Изучить классы и enum'),
-      Task('Попрактиковаться с циклами и List'),
-      Task('Разобраться с extension'),
+      Task('Python'),
+      Task('Pascal'),
+      Task('Dart'),
     ];
   }
 }
@@ -75,7 +73,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   int _countCompleted(List<Task> tasks) {
     int count = 0;
-    // Loop: перебираем задачи и подсчитываем выполненные.
     for (final task in tasks) {
       if (task.status == TaskStatus.completed) {
         count++;
@@ -104,7 +101,6 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: ListView.builder(
               itemCount: _tasks.length,
-              // Анонимная функция строит строку списка.
               itemBuilder: (context, index) {
                 final task = _tasks[index];
                 return CheckboxListTile(
