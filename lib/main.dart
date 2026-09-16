@@ -4,10 +4,8 @@ void main() {
   runApp(const MyApp());
 }
 
-// Enum: возможные состояния задачи.
 enum TaskStatus { pending, completed }
 
-// Extension: добавляем подпись к состоянию.
 extension TaskStatusLabel on TaskStatus {
   String get label => switch (this) {
     TaskStatus.pending => 'В процессе',
