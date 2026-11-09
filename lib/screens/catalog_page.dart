@@ -55,12 +55,6 @@ class _CatalogPageState extends State<CatalogPage> {
             Text(item.description),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Закрыть'),
-          ),
-        ],
       ),
     );
   }

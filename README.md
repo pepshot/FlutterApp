@@ -1,17 +1,77 @@
-# flutter_app
+# Лабораторная работа 5
 
-A new Flutter project.
+Flutter-клиент для MeetSpace с тремя вкладками: переговорные, встречи и
+пользователи. Переговорные загружаются из `GET /api/rooms`, встречи из
+`GET /api/bookings`, пользователи из `GET /api/users`. Изображение и описание
+комнаты приходят в DTO бэкенда; нажатие на комнату открывает страницу деталей.
 
-## Getting Started
+1. Запустите бэкенд из `~/ulstuProjects/MeetSpace/backend` на порту 8080.
+2. Запустите `flutter run`. В Android Emulator приложение обращается к
+   `http://10.0.2.2:8080`, на Linux — к `http://localhost:8080`.
+3. Для другого адреса передайте
+   `flutter run --dart-define=API_BASE_URL=http://АДРЕС:8080`.
 
-This project is a starting point for a Flutter application.
+## Где находится клиентский код
 
-A few resources to get you started if this is your first Flutter project:
+- **DTO**: `lib/data/room_dto.dart`, `booking_dto.dart`, `user_dto.dart`.
+  Метод `fromJson` превращает JSON из API в объект Dart.
+- **Интерфейсы и репозитории**: `lib/data/room_repository.dart`,
+  `booking_repository.dart`, `user_repository.dart`. Например,
+  `RoomRepository` задаёт метод `search`, а `HttpRoomRepository` его реализует.
+- **Связь с сервером**: `lib/data/backend_api.dart`. Метод `getList` выполняет
+  HTTP GET, проверяет код ответа и декодирует JSON. Репозитории вызывают его
+  с путями `/api/rooms`, `/api/bookings` и `/api/users`.
+- **Интерфейс**: `lib/screens/home_page.dart` содержит нижние вкладки,
+  `room_search_page.dart` — поиск и список, `room_detail_page.dart` — страницу
+  переговорной. `bookings_page.dart` и `users_page.dart` показывают данные
+  остальных вкладок.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Путь данных: экран → интерфейс репозитория → HTTP-реализация → `BackendApi` →
+сервер → JSON → DTO → экран.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+`HttpRoomRepository` отправляет поисковую строку в query-параметре `search`.
+Текущий бэкенд игнорирует этот параметр, поэтому репозиторий дополнительно
+фильтрует полученный список по названию. Данные комнат всегда приходят с сервера.
+
+## JSON-сериализация и CRUD
+
+Все DTO используют `json_serializable`: `fromJson` и `toJson` генерируются в
+`lib/data/*.g.dart`. После изменения полей DTO выполните:
+
+```sh
+dart run build_runner build
+```
+
+Репозитории пользователей, переговорных и встреч поддерживают `getById`,
+`create`, `update` и `delete`, а также загрузку списка (для комнат — `search`).
+Создание отправляет POST, изменение — PUT, удаление — DELETE. ID назначает
+сервер; `id` и статус встречи не отправляются в теле записи.
+
+Во всех вкладках кнопка «+» открывает форму создания, значок карандаша —
+редактирование, корзина — удаление с подтверждением. После успешной операции
+список обновляется. При ошибке сохранения форма остаётся открытой.
+Для встречи выберите комнату и пользователя из списков с сервера; даты вводятся
+в формате `2026-10-28T10:00`. Конец встречи должен быть позже начала.
+
+Проверка: `flutter analyze` и `flutter test`. Тесты проверяют сериализацию,
+методы и тела CRUD-запросов, обработку ответа 204 и ошибок HTTP на локальном
+тестовом сервере.
+
+## Запуск в Android без IDE
+
+Приложение называется **MeetSpace** и появляется в списке приложений Android.
+Для самостоятельной установки в запущенный эмулятор:
+
+```sh
+flutter build apk --release
+flutter install -d emulator-5554 --release
+```
+
+APK: `build/app/outputs/flutter-apk/app-release.apk`. После установки MeetSpace
+можно открывать значком в Android после закрытия IDE, приложения или перезапуска
+эмулятора. Не очищайте данные эмулятора через Wipe Data. Для загрузки и изменения
+данных бэкенд должен работать; установка APK не запускает сервер.
+
+Во вкладках переговорных, встреч и пользователей потяните список вниз, чтобы
+повторно загрузить данные с сервера. Свайп работает также на пустом списке и
+после ошибки загрузки; поиск переговорных сохраняется.
