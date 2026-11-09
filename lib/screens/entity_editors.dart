@@ -38,11 +38,7 @@ Future<bool> editRoom(
 ]) => showEntityForm(
   context,
   title: value == null ? 'Новая переговорная' : 'Изменить переговорную',
-  initial: {
-    ...?value?.toJson(),
-    'id': value?.id ?? '',
-    'projector': value?.hasProjector == true ? 'да' : 'нет',
-  },
+  initial: value?.toJson() ?? {'id': ''},
   fields: const [
     EntityField('name', 'Название', maxLength: 100),
     EntityField('capacity', 'Количество мест', number: true),
@@ -50,15 +46,8 @@ Future<bool> editRoom(
     EntityField('floor', 'Этаж', required: false, number: true),
     EntityField('description', 'Описание', required: false, maxLength: 2000),
     EntityField('image', 'Адрес изображения', required: false, maxLength: 2048),
-    EntityField('projector', 'Проектор (да/нет)'),
   ],
-  validate: (data) =>
-      ['да', 'нет'].contains(data['projector']?.toString().toLowerCase())
-      ? null
-      : 'Для проектора укажите «да» или «нет»',
   save: (data) async {
-    data['hasProjector'] =
-        data.remove('projector').toString().toLowerCase() == 'да';
     final dto = RoomDto.fromJson(data);
     if (value == null) {
       await repository.create(dto);

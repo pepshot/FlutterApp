@@ -27,7 +27,6 @@ class RoomDetailPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text('Расположение: ${room.location}'),
                 Text('Вместимость: ${room.capacity} мест'),
-                Text('Проектор: ${room.hasProjector ? 'есть' : 'нет'}'),
                 const SizedBox(height: 16),
                 Text(
                   room.description?.isNotEmpty == true

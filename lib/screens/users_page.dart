@@ -4,6 +4,7 @@ import '../widgets/entity_form.dart';
 
 import 'package:flutter/material.dart';
 
+import '../blocs/list_bloc.dart';
 import '../data/user_dto.dart';
 import '../data/user_repository.dart';
 
@@ -17,22 +18,18 @@ class UsersPage extends StatefulWidget {
 }
 
 class _UsersPageState extends State<UsersPage> {
-  late Future<List<UserDto>> _users = widget.repository.getAll();
+  late final _bloc = ListBloc<UserDto>(widget.repository.getAll)..refresh();
 
-  Future<void> _reload() async {
-    final request = widget.repository.getAll();
-    setState(() {
-      _users = request;
-    });
-    try {
-      await request;
-    } catch (_) {
-      // FutureBuilder displays the error and allows another swipe to retry.
-    }
+  @override
+  void dispose() {
+    _bloc.dispose();
+    super.dispose();
   }
 
   Future<void> _edit([UserDto? value]) async {
-    if (await editUser(context, widget.repository, value) && mounted) _reload();
+    if (await editUser(context, widget.repository, value) && mounted) {
+      await _bloc.refresh();
+    }
   }
 
   @override
@@ -41,30 +38,32 @@ class _UsersPageState extends State<UsersPage> {
       actions: [
         IconButton(
           tooltip: 'Обновить',
-          onPressed: _reload,
+          onPressed: _bloc.refresh,
           icon: const Icon(Icons.refresh),
         ),
       ],
       title: const Text('Пользователи'),
     ),
     floatingActionButton: FloatingActionButton(
+      heroTag: 'addUser',
       onPressed: () => _edit(),
       child: const Icon(Icons.add),
     ),
     body: RefreshIndicator(
-      onRefresh: _reload,
-      child: FutureBuilder<List<UserDto>>(
-        future: _users,
+      onRefresh: _bloc.refresh,
+      child: StreamBuilder<ListState<UserDto>>(
+        stream: _bloc.states,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const RefreshableMessage(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
+          final state = snapshot.data;
+          if (state?.failed == true) {
             return const RefreshableMessage(
               child: Text('Не удалось загрузить пользователей'),
             );
           }
-          final users = snapshot.data!;
+          final users = state?.items;
+          if (users == null) {
+            return const RefreshableMessage(child: CircularProgressIndicator());
+          }
           if (users.isEmpty) {
             return const RefreshableMessage(child: Text('Пользователей нет'));
           }
@@ -90,7 +89,7 @@ class _UsersPageState extends State<UsersPage> {
                         context,
                         user.fullName,
                         () => widget.repository.delete(user.id),
-                        _reload,
+                        _bloc.refresh,
                       ),
                     ),
                   ],

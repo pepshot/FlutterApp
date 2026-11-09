@@ -4,6 +4,7 @@ import '../widgets/entity_form.dart';
 
 import 'package:flutter/material.dart';
 
+import '../blocs/list_bloc.dart';
 import '../data/room_dto.dart';
 import '../data/room_repository.dart';
 import '../widgets/room_image.dart';
@@ -19,57 +20,36 @@ class RoomSearchPage extends StatefulWidget {
 }
 
 class _RoomSearchPageState extends State<RoomSearchPage> {
-  final _controller = TextEditingController();
-  List<RoomDto> _rooms = [];
-  bool _loading = false;
-  String? _error;
-  int _requestId = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final requestId = ++_requestId;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final rooms = await widget.repository.search(_controller.text);
-      if (!mounted || requestId != _requestId) return;
-      setState(() => _rooms = rooms);
-    } catch (_) {
-      if (!mounted || requestId != _requestId) return;
-      setState(
-        () => _error = 'Не удалось загрузить комнаты. Проверьте сервер.',
-      );
-    } finally {
-      if (mounted && requestId == _requestId) {
-        setState(() => _loading = false);
-      }
-    }
-  }
+  late final _bloc = ListBloc<RoomDto>.searchable(widget.repository.search)
+    ..refresh();
 
   Future<void> _edit([RoomDto? room]) async {
     if (await editRoom(context, widget.repository, room) && mounted) {
-      await _load();
+      await _bloc.refresh();
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _bloc.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Переговорные')),
+      appBar: AppBar(
+        title: const Text('Переговорные'),
+        actions: [
+          IconButton(
+            tooltip: 'Обновить',
+            onPressed: _bloc.refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'addRoom',
         onPressed: () => _edit(),
         child: const Icon(Icons.add),
       ),
@@ -78,81 +58,87 @@ class _RoomSearchPageState extends State<RoomSearchPage> {
         child: Column(
           children: [
             TextField(
-              controller: _controller,
               decoration: const InputDecoration(
                 labelText: 'Название комнаты',
                 border: OutlineInputBorder(),
               ),
-              onSubmitted: (_) => _load(),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _loading ? null : _load,
-                child: const Text('Найти'),
-              ),
+              onChanged: _bloc.searchChanged,
+              onSubmitted: (_) => _bloc.refresh(),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _load,
-                child: _loading
-                    ? const RefreshableMessage(
+                onRefresh: _bloc.refresh,
+                child: StreamBuilder<ListState<RoomDto>>(
+                  stream: _bloc.states,
+                  builder: (context, snapshot) {
+                    final state = snapshot.data;
+                    if (state?.failed == true) {
+                      return const RefreshableMessage(
+                        child: Text(
+                          'Не удалось загрузить комнаты. Проверьте сервер.',
+                        ),
+                      );
+                    }
+                    final rooms = state?.items;
+                    if (rooms == null) {
+                      return const RefreshableMessage(
                         child: CircularProgressIndicator(),
-                      )
-                    : _error != null
-                    ? RefreshableMessage(child: Text(_error!))
-                    : _rooms.isEmpty
-                    ? const RefreshableMessage(
+                      );
+                    }
+                    if (rooms.isEmpty) {
+                      return const RefreshableMessage(
                         child: Text('Комнаты не найдены'),
-                      )
-                    : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: _rooms.length,
-                        itemBuilder: (context, index) {
-                          final room = _rooms[index];
-                          return ListTile(
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: RoomImage(
-                                url: room.image,
-                                width: 64,
-                                height: 56,
+                      );
+                    }
+                    return ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: rooms.length,
+                      itemBuilder: (context, index) {
+                        final room = rooms[index];
+                        return ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: RoomImage(
+                              url: room.image,
+                              width: 64,
+                              height: 56,
+                            ),
+                          ),
+                          title: Text(room.name),
+                          subtitle: Text(
+                            '${room.location} · ${room.capacity} мест',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Изменить',
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _edit(room),
                               ),
-                            ),
-                            title: Text(room.name),
-                            subtitle: Text(
-                              '${room.location} · ${room.capacity} мест',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  tooltip: 'Изменить',
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _edit(room),
+                              IconButton(
+                                tooltip: 'Удалить',
+                                icon: const Icon(Icons.delete),
+                                onPressed: () => confirmDelete(
+                                  context,
+                                  room.name,
+                                  () => widget.repository.delete(room.id),
+                                  _bloc.refresh,
                                 ),
-                                IconButton(
-                                  tooltip: 'Удалить',
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => confirmDelete(
-                                    context,
-                                    room.name,
-                                    () => widget.repository.delete(room.id),
-                                    _load,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => RoomDetailPage(room: room),
                               ),
+                            ],
+                          ),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => RoomDetailPage(room: room),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ],

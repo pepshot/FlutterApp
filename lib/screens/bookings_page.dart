@@ -6,6 +6,7 @@ import '../widgets/entity_form.dart';
 
 import 'package:flutter/material.dart';
 
+import '../blocs/list_bloc.dart';
 import '../data/booking_dto.dart';
 import '../data/booking_repository.dart';
 
@@ -26,23 +27,17 @@ class BookingsPage extends StatefulWidget {
 }
 
 class _BookingsPageState extends State<BookingsPage> {
-  late Future<List<BookingDto>> _bookings = widget.repository.getAll();
+  late final _bloc = ListBloc<BookingDto>(widget.repository.getAll)..refresh();
+
+  @override
+  void dispose() {
+    _bloc.dispose();
+    super.dispose();
+  }
 
   String _date(DateTime value) =>
       '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year} '
       '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-
-  Future<void> _reload() async {
-    final request = widget.repository.getAll();
-    setState(() {
-      _bookings = request;
-    });
-    try {
-      await request;
-    } catch (_) {
-      // FutureBuilder displays the error and allows another swipe to retry.
-    }
-  }
 
   Future<void> _edit([BookingDto? value]) async {
     if (await editBooking(
@@ -53,7 +48,7 @@ class _BookingsPageState extends State<BookingsPage> {
           users: widget.users ?? HttpUserRepository(),
         ) &&
         mounted) {
-      _reload();
+      await _bloc.refresh();
     }
   }
 
@@ -63,30 +58,32 @@ class _BookingsPageState extends State<BookingsPage> {
       actions: [
         IconButton(
           tooltip: 'Обновить',
-          onPressed: _reload,
+          onPressed: _bloc.refresh,
           icon: const Icon(Icons.refresh),
         ),
       ],
       title: const Text('Встречи'),
     ),
     floatingActionButton: FloatingActionButton(
+      heroTag: 'addBooking',
       onPressed: () => _edit(),
       child: const Icon(Icons.add),
     ),
     body: RefreshIndicator(
-      onRefresh: _reload,
-      child: FutureBuilder<List<BookingDto>>(
-        future: _bookings,
+      onRefresh: _bloc.refresh,
+      child: StreamBuilder<ListState<BookingDto>>(
+        stream: _bloc.states,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const RefreshableMessage(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
+          final state = snapshot.data;
+          if (state?.failed == true) {
             return const RefreshableMessage(
               child: Text('Не удалось загрузить встречи'),
             );
           }
-          final bookings = snapshot.data!;
+          final bookings = state?.items;
+          if (bookings == null) {
+            return const RefreshableMessage(child: CircularProgressIndicator());
+          }
           if (bookings.isEmpty) {
             return const RefreshableMessage(child: Text('Встреч нет'));
           }
@@ -112,7 +109,7 @@ class _BookingsPageState extends State<BookingsPage> {
                         context,
                         booking.purpose,
                         () => widget.repository.delete(booking.id),
-                        _reload,
+                        _bloc.refresh,
                       ),
                     ),
                   ],
