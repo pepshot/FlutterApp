@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+
 import '../data/user_dto.dart';
 import '../data/user_repository.dart';
 import '../data/room_dto.dart';
@@ -14,12 +16,19 @@ Future<bool> editUser(
   UserDto? value,
 ]) => showEntityForm(
   context,
-  title: value == null ? 'Новый пользователь' : 'Изменить пользователя',
+  title: value == null
+      ? context.tr('Новый пользователь')
+      : context.tr('Изменить пользователя'),
   initial: value?.toJson() ?? {'id': ''},
-  fields: const [
-    EntityField('fullName', 'ФИО', maxLength: 255),
-    EntityField('email', 'Email', maxLength: 254),
-    EntityField('department', 'Отдел', required: false, maxLength: 100),
+  fields: [
+    EntityField('fullName', context.tr('ФИО'), maxLength: 255),
+    const EntityField('email', 'Email', maxLength: 254),
+    EntityField(
+      'department',
+      context.tr('Отдел'),
+      required: false,
+      maxLength: 100,
+    ),
   ],
   save: (data) async {
     final dto = UserDto.fromJson(data);
@@ -37,15 +46,27 @@ Future<bool> editRoom(
   RoomDto? value,
 ]) => showEntityForm(
   context,
-  title: value == null ? 'Новая переговорная' : 'Изменить переговорную',
+  title: value == null
+      ? context.tr('Новая переговорная')
+      : context.tr('Изменить переговорную'),
   initial: value?.toJson() ?? {'id': ''},
-  fields: const [
-    EntityField('name', 'Название', maxLength: 100),
-    EntityField('capacity', 'Количество мест', number: true),
-    EntityField('location', 'Расположение', maxLength: 255),
-    EntityField('floor', 'Этаж', required: false, number: true),
-    EntityField('description', 'Описание', required: false, maxLength: 2000),
-    EntityField('image', 'Адрес изображения', required: false, maxLength: 2048),
+  fields: [
+    EntityField('name', context.tr('Название'), maxLength: 100),
+    EntityField('capacity', context.tr('Количество мест'), number: true),
+    EntityField('location', context.tr('Расположение'), maxLength: 255),
+    EntityField('floor', context.tr('Этаж'), required: false, number: true),
+    EntityField(
+      'description',
+      context.tr('Описание'),
+      required: false,
+      maxLength: 2000,
+    ),
+    EntityField(
+      'image',
+      context.tr('Адрес изображения'),
+      required: false,
+      maxLength: 2048,
+    ),
   ],
   save: (data) async {
     final dto = RoomDto.fromJson(data);
@@ -65,7 +86,9 @@ Future<bool> editBooking(
   BookingDto? value,
 }) => showEntityForm(
   context,
-  title: value == null ? 'Новая встреча' : 'Изменить встречу',
+  title: value == null
+      ? context.tr('Новая встреча')
+      : context.tr('Изменить встречу'),
   initial: value?.toJson() ?? {'id': '', 'status': 'CONFIRMED'},
   loadOptions: () async {
     final result = await Future.wait<Object>([
@@ -74,8 +97,10 @@ Future<bool> editBooking(
     ]);
     return {
       'roomId': {
-        for (final room in result[0] as List<RoomDto>)
-          room.id: '${room.name} · ${room.location} (${room.capacity} мест)',
+        if (context.mounted)
+          for (final room in result[0] as List<RoomDto>)
+            room.id:
+                '${room.name} · ${room.location} (${context.tr('{count} мест', {'count': room.capacity})})',
       },
       'userId': {
         for (final user in result[1] as List<UserDto>)
@@ -83,15 +108,15 @@ Future<bool> editBooking(
       },
     };
   },
-  fields: const [
-    EntityField('roomId', 'Переговорная'),
-    EntityField('userId', 'Пользователь'),
-    EntityField('startTime', 'Начало (2026-10-28T10:00)'),
-    EntityField('endTime', 'Конец (2026-10-28T11:00)'),
-    EntityField('purpose', 'Цель встречи', maxLength: 500),
+  fields: [
+    EntityField('roomId', context.tr('Переговорная')),
+    EntityField('userId', context.tr('Пользователь')),
+    EntityField('startTime', context.tr('Начало (2026-10-28T10:00)')),
+    EntityField('endTime', context.tr('Конец (2026-10-28T11:00)')),
+    EntityField('purpose', context.tr('Цель встречи'), maxLength: 500),
     EntityField(
       'participantsCount',
-      'Участников',
+      context.tr('Участников'),
       required: false,
       number: true,
     ),
@@ -100,7 +125,7 @@ Future<bool> editBooking(
     final start = DateTime.tryParse(data['startTime'] as String);
     final end = DateTime.tryParse(data['endTime'] as String);
     if (start == null || end == null || !end.isAfter(start)) {
-      return 'Укажите даты; конец должен быть позже начала';
+      return context.tr('Укажите даты; конец должен быть позже начала');
     }
     return null;
   },

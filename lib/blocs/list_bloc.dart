@@ -23,8 +23,8 @@ class ListBloc<T> {
     _debounce = Timer(const Duration(milliseconds: 350), refresh);
   }
 
-  Future<void> refresh() async {
-    if (_states.isClosed) return;
+  Future<bool> refresh() async {
+    if (_states.isClosed) return false;
     _debounce?.cancel();
     final requestId = ++_requestId;
     _states.add((items: null, failed: false));
@@ -32,12 +32,14 @@ class ListBloc<T> {
       final items = await _load(_query);
       if (requestId == _requestId) {
         _states.add((items: items, failed: false));
+        return true;
       }
     } catch (_) {
       if (requestId == _requestId) {
         _states.add((items: null, failed: true));
       }
     }
+    return false;
   }
 
   void dispose() {

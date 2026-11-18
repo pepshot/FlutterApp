@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+
 class EntityField {
   const EntityField(
     this.key,
@@ -87,8 +89,9 @@ class _EntityFormState extends State<_EntityForm> {
     } catch (_) {
       if (mounted) {
         setState(
-          () => _optionsError =
-              'Не удалось загрузить пользователей и переговорные',
+          () => _optionsError = context.tr(
+            'Не удалось загрузить пользователей и переговорные',
+          ),
         );
       }
     } finally {
@@ -135,7 +138,7 @@ class _EntityFormState extends State<_EntityForm> {
     } catch (error) {
       if (mounted) {
         setState(() {
-          _error = 'Не удалось сохранить: $error';
+          _error = "${context.tr('Не удалось сохранить')}: $error";
           _saving = false;
         });
       }
@@ -160,12 +163,14 @@ class _EntityFormState extends State<_EntityForm> {
                   Text(_optionsError!),
                   TextButton(
                     onPressed: _loadOptions,
-                    child: const Text('Повторить'),
+                    child: Text(context.tr('Повторить')),
                   ),
                 ],
                 if (!_loadingOptions && _optionsError == null && !_optionsReady)
-                  const Text(
-                    'Для создания встречи добавьте пользователя и переговорную.',
+                  Text(
+                    context.tr(
+                      'Для создания встречи добавьте пользователя и переговорную.',
+                    ),
                   ),
                 for (final field in widget.fields)
                   if (_options.containsKey(field.key))
@@ -193,8 +198,9 @@ class _EntityFormState extends State<_EntityForm> {
                           ? null
                           : (value) =>
                                 _controllers[field.key]!.text = value ?? '',
-                      validator: (value) =>
-                          value == null ? 'Выберите из списка' : null,
+                      validator: (value) => value == null
+                          ? context.tr('Выберите из списка')
+                          : null,
                     )
                   else if (widget.loadOptions == null ||
                       (field.key != 'roomId' && field.key != 'userId'))
@@ -209,17 +215,19 @@ class _EntityFormState extends State<_EntityForm> {
                       validator: (value) {
                         final text = value?.trim() ?? '';
                         if (text.isEmpty) {
-                          return field.required ? 'Заполните поле' : null;
+                          return field.required
+                              ? context.tr('Заполните поле')
+                              : null;
                         }
                         if (field.number &&
                             (int.tryParse(text) == null ||
                                 int.parse(text) < 1)) {
-                          return 'Введите целое число от 1';
+                          return context.tr('Введите целое число от 1');
                         }
                         if (field.key == 'email' &&
                             !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
                                 .hasMatch(text)) {
-                          return 'Введите корректный email';
+                          return context.tr('Введите корректный email');
                         }
                         return null;
                       },
@@ -239,11 +247,13 @@ class _EntityFormState extends State<_EntityForm> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(context.tr('Отмена')),
         ),
         FilledButton(
           onPressed: _saving || !_optionsReady ? null : _save,
-          child: Text(_saving ? 'Сохранение…' : 'Сохранить'),
+          child: Text(
+            _saving ? context.tr('Сохранение…') : context.tr('Сохранить'),
+          ),
         ),
       ],
     ),
@@ -259,16 +269,16 @@ Future<void> confirmDelete(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Удаление'),
-      content: Text('Удалить «$name»?'),
+      title: Text(context.tr('Удаление')),
+      content: Text(context.tr('Удалить «{name}»?', {'name': name})),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(context.tr('Отмена')),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          child: const Text('Удалить'),
+          child: Text(context.tr('Удалить')),
         ),
       ],
     ),
@@ -279,8 +289,9 @@ Future<void> confirmDelete(
     if (context.mounted) reload();
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Не удалось удалить: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${context.tr('Не удалось удалить')}: $error")),
+      );
     }
   }
 }

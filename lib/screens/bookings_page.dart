@@ -6,6 +6,8 @@ import '../widgets/entity_form.dart';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+
 import '../blocs/list_bloc.dart';
 import '../data/booking_dto.dart';
 import '../data/booking_repository.dart';
@@ -35,9 +37,22 @@ class _BookingsPageState extends State<BookingsPage> {
     super.dispose();
   }
 
-  String _date(DateTime value) =>
-      '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year} '
-      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+  String _date(BuildContext context, DateTime value) {
+    final localizations = MaterialLocalizations.of(context);
+    final date = localizations.formatCompactDate(value);
+    final time = localizations.formatTimeOfDay(
+      TimeOfDay.fromDateTime(value),
+      alwaysUse24HourFormat: true,
+    );
+    return '$date $time';
+  }
+
+  String _status(BuildContext context, String status) => switch (status) {
+    'CONFIRMED' => context.tr('Подтверждена'),
+    'CANCELLED' => context.tr('Отменена'),
+    'COMPLETED' => context.tr('Завершена'),
+    _ => status,
+  };
 
   Future<void> _edit([BookingDto? value]) async {
     if (await editBooking(
@@ -57,12 +72,12 @@ class _BookingsPageState extends State<BookingsPage> {
     appBar: AppBar(
       actions: [
         IconButton(
-          tooltip: 'Обновить',
+          tooltip: context.tr('Обновить'),
           onPressed: _bloc.refresh,
           icon: const Icon(Icons.refresh),
         ),
       ],
-      title: const Text('Встречи'),
+      title: Text(context.tr('Встречи')),
     ),
     floatingActionButton: FloatingActionButton(
       heroTag: 'addBooking',
@@ -76,8 +91,8 @@ class _BookingsPageState extends State<BookingsPage> {
         builder: (context, snapshot) {
           final state = snapshot.data;
           if (state?.failed == true) {
-            return const RefreshableMessage(
-              child: Text('Не удалось загрузить встречи'),
+            return RefreshableMessage(
+              child: Text(context.tr('Не удалось загрузить встречи')),
             );
           }
           final bookings = state?.items;
@@ -85,7 +100,7 @@ class _BookingsPageState extends State<BookingsPage> {
             return const RefreshableMessage(child: CircularProgressIndicator());
           }
           if (bookings.isEmpty) {
-            return const RefreshableMessage(child: Text('Встреч нет'));
+            return RefreshableMessage(child: Text(context.tr('Встреч нет')));
           }
           return ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -98,12 +113,12 @@ class _BookingsPageState extends State<BookingsPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Изменить',
+                      tooltip: context.tr('Изменить'),
                       icon: const Icon(Icons.edit),
                       onPressed: () => _edit(booking),
                     ),
                     IconButton(
-                      tooltip: 'Удалить',
+                      tooltip: context.tr('Удалить'),
                       icon: const Icon(Icons.delete),
                       onPressed: () => confirmDelete(
                         context,
@@ -116,7 +131,7 @@ class _BookingsPageState extends State<BookingsPage> {
                 ),
                 title: Text(booking.purpose),
                 subtitle: Text(
-                  '${_date(booking.startTime)} · ${booking.status}',
+                  '${_date(context, booking.startTime)} · ${_status(context, booking.status)}',
                 ),
               );
             },

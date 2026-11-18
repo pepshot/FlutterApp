@@ -4,6 +4,8 @@ import '../widgets/entity_form.dart';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+
 import '../blocs/list_bloc.dart';
 import '../data/user_dto.dart';
 import '../data/user_repository.dart';
@@ -37,12 +39,12 @@ class _UsersPageState extends State<UsersPage> {
     appBar: AppBar(
       actions: [
         IconButton(
-          tooltip: 'Обновить',
+          tooltip: context.tr('Обновить'),
           onPressed: _bloc.refresh,
           icon: const Icon(Icons.refresh),
         ),
       ],
-      title: const Text('Пользователи'),
+      title: Text(context.tr('Пользователи')),
     ),
     floatingActionButton: FloatingActionButton(
       heroTag: 'addUser',
@@ -56,8 +58,8 @@ class _UsersPageState extends State<UsersPage> {
         builder: (context, snapshot) {
           final state = snapshot.data;
           if (state?.failed == true) {
-            return const RefreshableMessage(
-              child: Text('Не удалось загрузить пользователей'),
+            return RefreshableMessage(
+              child: Text(context.tr('Не удалось загрузить пользователей')),
             );
           }
           final users = state?.items;
@@ -65,7 +67,9 @@ class _UsersPageState extends State<UsersPage> {
             return const RefreshableMessage(child: CircularProgressIndicator());
           }
           if (users.isEmpty) {
-            return const RefreshableMessage(child: Text('Пользователей нет'));
+            return RefreshableMessage(
+              child: Text(context.tr('Пользователей нет')),
+            );
           }
           return ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -78,12 +82,12 @@ class _UsersPageState extends State<UsersPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Изменить',
+                      tooltip: context.tr('Изменить'),
                       icon: const Icon(Icons.edit),
                       onPressed: () => _edit(user),
                     ),
                     IconButton(
-                      tooltip: 'Удалить',
+                      tooltip: context.tr('Удалить'),
                       icon: const Icon(Icons.delete),
                       onPressed: () => confirmDelete(
                         context,

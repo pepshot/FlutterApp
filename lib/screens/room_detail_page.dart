@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+
 import '../data/room_dto.dart';
 import '../widgets/room_image.dart';
 
@@ -25,13 +27,15 @@ class RoomDetailPage extends StatelessWidget {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
-                Text('Расположение: ${room.location}'),
-                Text('Вместимость: ${room.capacity} мест'),
+                Text("${context.tr('Расположение')}: ${room.location}"),
+                Text(
+                  "${context.tr('Вместимость')}: ${context.tr('{count} мест', {'count': room.capacity})}",
+                ),
                 const SizedBox(height: 16),
                 Text(
                   room.description?.isNotEmpty == true
                       ? room.description!
-                      : 'Описание отсутствует',
+                      : context.tr('Описание отсутствует'),
                 ),
               ],
             ),
