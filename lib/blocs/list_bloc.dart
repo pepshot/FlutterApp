@@ -17,7 +17,6 @@ class ListBloc<T> {
 
   void searchChanged(String query) {
     _query = query;
-    // Ignore results for the previous query during the debounce interval.
     ++_requestId;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), refresh);
